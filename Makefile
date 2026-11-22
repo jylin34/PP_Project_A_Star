@@ -1,12 +1,11 @@
 VENV   := .venv
 PYTHON := $(VENV)/bin/python
 
-.PHONY: help maps graphs clean-maps
+.PHONY: help data clean-data
 
 help:
-	@echo "make maps        - download Hsinchu + Taiwan maps"
-	@echo "make graphs      - convert maps to C++ graphs (data/*.gr)"
-	@echo "make clean-maps  - delete data/ and OSMnx cache (cache/)"
+	@echo "make data        - download maps and convert them to C++ graphs (data/*.gr)"
+	@echo "make clean-data  - delete data/ and OSMnx cache (cache/)"
 
 # Create .venv and install deps; re-run when requirements.txt changes
 $(VENV)/.installed: requirements.txt
@@ -14,11 +13,9 @@ $(VENV)/.installed: requirements.txt
 	$(PYTHON) -m pip install -r requirements.txt
 	touch $@
 
-maps: $(VENV)/.installed
+data: $(VENV)/.installed
 	$(PYTHON) scripts/download_maps.py
-
-graphs: maps
 	$(PYTHON) scripts/convert_maps.py
 
-clean-maps:
+clean-data:
 	rm -rf data/ cache/
