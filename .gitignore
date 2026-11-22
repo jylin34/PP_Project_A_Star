@@ -1,0 +1,12 @@
+# Downloaded / generated map data
+data/
+
+# Python
+__pycache__/
+.venv/
+
+# Build outputs
+build/
+
+# OSMnx HTTP response cache
+cache/
