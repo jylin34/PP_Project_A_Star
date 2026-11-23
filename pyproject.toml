@@ -1,0 +1,7 @@
+[project]
+name = "parallel-astar-research-tools"
+version = "1.0.0"
+requires-python = ">=3.9"
+dependencies = []
+[project.optional-dependencies]
+osm = ["osmnx>=2.0"]
