@@ -1,12 +1,11 @@
-# Downloaded / generated map data
-data/
-
-# Python
-__pycache__/
-.venv/
-
-# Build outputs
-build/
-
-# OSMnx HTTP response cache
-cache/
+/build/
+/results/
+/.venv/
+/.pytest_cache/
+/__pycache__/
+*.pyc
+/data/osm/*.graphml
+/data/osm/nodes.csv
+/data/osm/edges.csv
+/data/osm/queries.csv
+/data/osm/*.pbf
