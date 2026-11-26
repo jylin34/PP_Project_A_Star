@@ -9,3 +9,8 @@
 /data/osm/edges.csv
 /data/osm/queries.csv
 /data/osm/*.pbf
+
+# Large graph / map datasets (generated or downloaded, do not commit)
+/data/*.gr
+/data/*.graphml
+/data/*.pbf

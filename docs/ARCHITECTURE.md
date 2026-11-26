@@ -53,7 +53,7 @@ All workers share read-only graph and atomic incumbent/outstanding counters. Eac
 ```text
      Worker i                                            Worker j
   +-------------+                                    +-------------+
-  | inbox i     | <--- remote successor batches -- | inbox j     |
+  | inbox i     | <--- remote successor batches --   | inbox j     |
   | (mutex/cv)  |                                    | (mutex/cv)  |
   |             |                                    |             |
   | owner state |                                    | owner state |
@@ -61,10 +61,10 @@ All workers share read-only graph and atomic incumbent/outstanding counters. Eac
   |      |      |                                    |      |      |
   | local heap  |                                    | local heap  |
   |      |      |                                    |      |      |
-  | expand      | ---- owner(s)=H(s)%P ----------> | expand      |
+  | expand      | ---- owner(s)=H(s)%P ---------->   | expand      |
   +-------------+                                    +-------------+
-            \                      / 
-             \___ atomic outstanding _/   (no global scheduler mutex)
+            \                                           / 
+             \___________ atomic outstanding __________/   (no global scheduler mutex)
 ```
 
 ### Work accounting protocol
