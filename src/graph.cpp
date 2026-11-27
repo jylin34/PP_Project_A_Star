@@ -3,6 +3,7 @@
 #include "astar.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <fstream>
 #include <random>
@@ -20,9 +21,7 @@ namespace astar {
             const double r = 6371009.0;
             const double dlat = (b.latitude - a.latitude) * PI / 180.0;
             const double dlon = (b.longitude - a.longitude) * PI / 180.0;
-            const double x = std::sin(dlat / 2) * std::sin(dlat / 2) +
-                             std::cos(a.latitude * PI / 180.0) * std::cos(b.latitude * PI / 180.0) *
-                                 std::sin(dlon / 2) * std::sin(dlon / 2);
+            const double x = std::sin(dlat / 2) * std::sin(dlat / 2) + std::cos(a.latitude * PI / 180.0) * std::cos(b.latitude * PI / 180.0) * std::sin(dlon / 2) * std::sin(dlon / 2);
             return r * 2 * std::asin(std::min(1.0, std::sqrt(x)));
         }
 
@@ -43,11 +42,30 @@ namespace astar {
 
     }  // namespace
 
+    bool profile_heuristic = false;
+
+    HeuristicProfile& heuristic_profile() {
+        thread_local HeuristicProfile profile;
+        return profile;
+    }
+
     double Graph::heuristic(Vertex u, Vertex goal) const {
-        if (grid) {
-            return std::abs(point[u].x - point[goal].x) + std::abs(point[u].y - point[goal].y);
+        auto compute = [&] {
+            if (grid) {
+                return double(std::abs(point[u].x - point[goal].x) + std::abs(point[u].y - point[goal].y));
+            }
+            return road_heuristic_scale * earth_distance(point[u], point[goal]);
+        };
+
+        auto& prof = heuristic_profile();
+        ++prof.calls;
+        if (!profile_heuristic) {
+            return compute();
         }
-        return road_heuristic_scale * earth_distance(point[u], point[goal]);
+        auto t0 = std::chrono::steady_clock::now();
+        double h = compute();
+        prof.ns += std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - t0).count();
+        return h;
     }
 
     Graph make_grid(int side, uint64_t seed, double density) {

@@ -149,6 +149,8 @@ namespace astar {
                 out.stats.inbox_received += x.inbox_received;
                 out.stats.assigned += x.assigned;
                 out.stats.wait_ms += x.wait_ms;
+                out.stats.heuristic_calls += x.heuristic_calls;
+                out.stats.heuristic_ms += x.heuristic_ms;
                 out.stats.per_worker_expanded.push_back(x.expanded);
                 out.stats.per_worker_generated.push_back(x.generated);
                 out.stats.per_worker_assigned.push_back(x.assigned);
@@ -183,6 +185,7 @@ namespace astar {
     SearchResult shared_queue(const Graph& graph, Vertex s, Vertex t, const Config& config) {
         check_config(graph, s, t, config);
         const auto begin = Clock::now();
+        begin_heuristic_profile();
         SearchResult result;
 
         if (s == t) {
@@ -243,6 +246,7 @@ namespace astar {
                 auto& self = *static_cast<Worker*>(ptr);
                 auto& c = *self.c;
                 auto& stats = c.counters[self.id];
+                begin_heuristic_profile();
 
                 while (true) {
                     // Pop one entry from the shared queue.
@@ -313,6 +317,7 @@ namespace astar {
                     }
                     c.finish();  // all generated work registered before current work completes
                 }
+                end_heuristic_profile(stats);
                 return nullptr;
             }
         };
@@ -358,6 +363,7 @@ namespace astar {
         }
 
         aggregate(result, ctx.counters);
+        end_heuristic_profile(result.stats);
         result.time_ms = ms(Clock::now() - begin);
         return result;
     }
@@ -369,6 +375,7 @@ namespace astar {
     SearchResult hda(const Graph& graph, Vertex s, Vertex t, const Config& config) {
         check_config(graph, s, t, config);
         const auto begin = Clock::now();
+        begin_heuristic_profile();
         SearchResult result;
 
         if (s == t) {
@@ -459,6 +466,7 @@ namespace astar {
                 auto& c = *self.c;
                 Owner& own = *c.workers[self.id];
                 SearchStats& stats = c.counters[self.id];
+                begin_heuristic_profile();
 
                 std::vector<std::vector<Message>> outbox(c.config.threads);
                 std::vector<int> touched;
@@ -612,6 +620,7 @@ namespace astar {
                         }
                     }
                 }
+                end_heuristic_profile(stats);
                 return nullptr;
             }
         };
@@ -659,6 +668,7 @@ namespace astar {
         }
 
         aggregate(result, ctx.counters);
+        end_heuristic_profile(result.stats);
         result.time_ms = ms(Clock::now() - begin);
         return result;
     }
@@ -682,6 +692,7 @@ namespace astar {
             throw std::runtime_error("start or goal outside graph");
         }
         const auto begin = Clock::now();
+        begin_heuristic_profile();
         SearchResult result;
 
         if (s == t) {
@@ -757,6 +768,7 @@ namespace astar {
                 const auto& adjacency = self.is_forward ? sh.graph.adj : sh.graph.reverse;
                 const Vertex destination = self.destination;  // forward -> goal, backward -> start
                 auto& stats = own.stats;
+                begin_heuristic_profile();
 
                 while (!sh.stop.load(std::memory_order_relaxed)) {
                     // Drop stale entries so top() is a valid lower bound.
@@ -791,6 +803,7 @@ namespace astar {
                         }
                     }
                 }
+                end_heuristic_profile(stats);
                 return nullptr;
             }
         };
@@ -851,6 +864,7 @@ namespace astar {
         aggregate(result, {shared.forward.stats, shared.backward.stats});
         result.stats.forward_expanded = shared.forward.stats.expanded;
         result.stats.backward_expanded = shared.backward.stats.expanded;
+        end_heuristic_profile(result.stats);
         result.time_ms = ms(Clock::now() - begin);
         return result;
     }

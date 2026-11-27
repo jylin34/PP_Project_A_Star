@@ -17,6 +17,9 @@ METRICS=[
   ('search_overhead','Search overhead (SO)','search_overhead'),
   ('load_balance','Owner work distribution (LB)','load_balance'),
   ('load_balance_expanded','Expansion imbalance','expansion_imbalance'),
+  ('heuristic_calls','Heuristic calls','heuristic_calls'),
+  ('heuristic_ms','Heuristic time, summed over threads (ms)','heuristic_time'),
+  ('heuristic_share','Heuristic time / search time','heuristic_share'),
 ]
 
 def label(row):
@@ -104,7 +107,9 @@ def main():
     for r in rows:by_dataset.setdefault(r['dataset'],[]).append(r)
     count=0
     for dataset,data in by_dataset.items():
+        profiled=any(float(r.get('heuristic_ms') or 0)>0 for r in data)
         for key,ylabel,suffix in METRICS:
+            if key in ('heuristic_ms','heuristic_share') and not profiled:continue  # only with --profile-heuristic
             path=args.out / f'{dataset}_{suffix}.svg'
             svg_chart(data,key,ylabel,dataset+' / '+ylabel,path)
             count+=int(path.is_file())

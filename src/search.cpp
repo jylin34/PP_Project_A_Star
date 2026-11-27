@@ -63,6 +63,7 @@ namespace astar {
 
     SearchResult sequential(const Graph& g, Vertex s, Vertex t){
         auto start = Clock::now();
+        begin_heuristic_profile();
         SearchResult r;
         std::vector<State> state(g.size());
         Queue q;
@@ -102,6 +103,7 @@ namespace astar {
 
         if(r.found) r.path = path_to(state, s, t);
         r.time_ms = elapsed(start);
+        end_heuristic_profile(r.stats);
         r.stats.per_worker_expanded = {r.stats.expanded};
         r.stats.per_worker_generated = {r.stats.generated};
         return r;   // SearchResult
@@ -109,6 +111,7 @@ namespace astar {
 
     SearchResult dijkstra(const Graph& g,Vertex s,Vertex t){
         auto start=Clock::now();
+        begin_heuristic_profile();
         SearchResult r;std::vector<State> state(g.size());
         Queue q;
         
@@ -145,6 +148,7 @@ namespace astar {
 
         if(r.found)r.path = path_to(state, s, t);
         r.time_ms = elapsed(start);
+        end_heuristic_profile(r.stats);
         r.stats.per_worker_expanded = {r.stats.expanded};
         r.stats.per_worker_generated = {r.stats.generated};
         return r;
@@ -152,6 +156,7 @@ namespace astar {
 
     SearchResult bidirectional(const Graph& g, Vertex s, Vertex t){
         auto start = Clock::now();
+        begin_heuristic_profile();
         SearchResult r;
 
         if(s == t){
@@ -262,6 +267,7 @@ namespace astar {
             }
         }
         r.time_ms = elapsed(start);
+        end_heuristic_profile(r.stats);
         r.stats.forward_expanded = nforward;
         r.stats.backward_expanded = nbackward;
         r.stats.per_worker_expanded = {r.stats.expanded};

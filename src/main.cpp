@@ -3,6 +3,7 @@
 #include "astar.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <iomanip>
@@ -61,7 +62,7 @@ int main(int argc, char** argv) {
             if (key == "--help" || key == "-h") {
                 std::cout << "Usage: parallel_astar --algorithm dijkstra|sequential|bidirectional|bidir_parallel|shared|hda "
                              "[--grid N --seed N --density D | --nodes nodes.csv --edges edges.csv] "
-                             "--start S --goal T [--threads P --hash POLICY --tile N --batch N --verify 1]\n";
+                             "--start S --goal T [--threads P --hash POLICY --tile N --batch N --verify 1 --profile-heuristic 0|1]\n";
                 return 0;
             }
             if (key.rfind("--", 0) != 0 || i + 1 >= argc) {
@@ -84,6 +85,20 @@ int main(int argc, char** argv) {
         cfg.batch = std::stoi(get("batch", "32"));
         cfg.flush_interval = std::stoi(get("flush-interval", "8"));
         cfg.prune = get("prune", "1") != "0";
+
+        // Time every heuristic() call. Measure the timer's own cost first so it
+        // can be subtracted (an empty timed region costs this much per call).
+        astar::profile_heuristic = get("profile-heuristic", "0") != "0";
+        double timer_overhead_ns = 0;
+        if (astar::profile_heuristic) {
+            const int rounds = 1000000;
+            double total = 0;
+            for (int i = 0; i < rounds; ++i) {
+                auto t0 = std::chrono::steady_clock::now();
+                total += std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - t0).count();
+            }
+            timer_overhead_ns = total / rounds;
+        }
 
         // ---- Build graph ----
         astar::Graph graph;
@@ -167,6 +182,13 @@ int main(int argc, char** argv) {
         double balance = algorithm == "hda" ? balance_assigned : balance_expanded;
         double co = r.stats.generated ? double(r.stats.remote) / r.stats.generated : 0;
 
+        // Heuristic time with timer overhead removed (0 when not profiling).
+        double heuristic_ms = 0, heuristic_share = 0;
+        if (astar::profile_heuristic) {
+            heuristic_ms = std::max(0.0, r.stats.heuristic_ms - r.stats.heuristic_calls * timer_overhead_ns / 1e6);
+            heuristic_share = r.time_ms > 0 ? heuristic_ms / r.time_ms : 0;
+        }
+
         // ---- Print JSON ----
         std::cout << "{\"algorithm\":\"" << algorithm << "\""
                   << ",\"threads\":" << (algorithm == "shared" || algorithm == "hda" ? cfg.threads : algorithm == "bidir_parallel" ? 2 : 1)
@@ -194,6 +216,11 @@ int main(int argc, char** argv) {
                   << ",\"inbox_received\":" << r.stats.inbox_received
                   << ",\"assigned_nodes\":" << r.stats.assigned
                   << ",\"wait_ms_sum\":" << json_number(r.stats.wait_ms)
+                  << ",\"profile_heuristic\":" << (astar::profile_heuristic ? "true" : "false")
+                  << ",\"heuristic_calls\":" << r.stats.heuristic_calls
+                  << ",\"heuristic_ms\":" << json_number(heuristic_ms)
+                  << ",\"heuristic_share\":" << json_number(heuristic_share)
+                  << ",\"timer_overhead_ns\":" << json_number(timer_overhead_ns)
                   << ",\"communication_overhead\":" << json_number(co)
                   << ",\"load_balance\":" << json_number(balance)
                   << ",\"load_balance_expanded\":" << json_number(balance_expanded)

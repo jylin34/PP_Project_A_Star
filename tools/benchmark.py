@@ -107,6 +107,7 @@ def run_one(job, mode, repetition, args):
            '--start', str(job['start']), '--goal', str(job['goal']),
            '--verify', '1' if args.verify else '0',
            '--prune', '1' if args.prune else '0',
+           '--profile-heuristic', '1' if args.profile_heuristic else '0',
            '--tile', str(args.tile), '--batch', str(args.batch), '--flush-interval', str(args.flush_interval)] + job['graph_options']
     if alg == 'hda':
         cmd += ['--hash', policy]
@@ -173,6 +174,9 @@ def summarize(rows, out_dir):
             'load_balance': opt_median(data, 'load_balance'),
             'load_balance_expanded': opt_median(data, 'load_balance_expanded'),
             'median_assigned': opt_median(data, 'assigned_nodes'),
+            'heuristic_calls': opt_median(data, 'heuristic_calls'),
+            'heuristic_ms': opt_median(data, 'heuristic_ms'),
+            'heuristic_share': opt_median(data, 'heuristic_share'),
             'search_overhead': m_exp / b_exp - 1 if b_exp and b_exp > 0 else None,
             'speedup_vs_sequential': b_time / m_time if m_time > 0 else None,
             'scaling_speedup': p1 / m_time if p1 is not None and m_time > 0 else None,
@@ -189,6 +193,7 @@ def summarize(rows, out_dir):
                 'threads': p, 'hash': policy, 'queries': len(data)}
         for metric in ('median_ms', 'median_expanded', 'median_generated', 'median_remote',
                        'median_remote_batches', 'communication_overhead', 'load_balance', 'load_balance_expanded', 'median_assigned',
+                       'heuristic_calls', 'heuristic_ms', 'heuristic_share',
                        'search_overhead', 'speedup_vs_sequential', 'scaling_speedup', 'scaling_efficiency'):
             item[metric] = opt_median(data, metric)
         summary.append(item)
@@ -229,6 +234,8 @@ def main():
     parser.add_argument('--no-verify', dest='verify', action='store_false', help='NOT recommended for final experiments')
     parser.add_argument('--no-prune', dest='prune', action='store_false')
     parser.add_argument('--no-shuffle', action='store_true')
+    parser.add_argument('--profile-heuristic', action='store_true',
+                        help='time every heuristic() call (adds timer overhead; run as a separate experiment)')
     parser.add_argument('--resume', action='store_true', help='reuse validated runs.csv after an interruption; reject changed config/input')
     args = parser.parse_args()
     if not EXE.is_file(): parser.error('missing executable: run ./run_all.sh first')
