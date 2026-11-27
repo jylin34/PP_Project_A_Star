@@ -93,7 +93,7 @@ def osm_workloads(args):
 
 def variant_modes(args):
     # These modes are repeated on the same graph/query, with equal verification.
-    modes = [('sequential', 1, '-'), ('bidirectional', 1, '-'), ('bidir_parallel', 2, '-')]
+    modes = [('dijkstra', 1, '-'), ('sequential', 1, '-'), ('bidirectional', 1, '-'), ('bidir_parallel', 2, '-')]
     for p in args.threads:
         modes.append(('shared', p, '-'))
         for h in args.hash_policies:

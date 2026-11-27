@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
         for (int i = 1; i < argc; ++i) {
             std::string key = argv[i];
             if (key == "--help" || key == "-h") {
-                std::cout << "Usage: parallel_astar --algorithm sequential|bidirectional|bidir_parallel|shared|hda "
+                std::cout << "Usage: parallel_astar --algorithm dijkstra|sequential|bidirectional|bidir_parallel|shared|hda "
                              "[--grid N --seed N --density D | --nodes nodes.csv --edges edges.csv] "
                              "--start S --goal T [--threads P --hash POLICY --tile N --batch N --verify 1]\n";
                 return 0;
@@ -116,6 +116,9 @@ int main(int argc, char** argv) {
         else if (algorithm == "bidirectional") {
             r = astar::bidirectional(graph, s, t);
         } 
+        else if (algorithm == "dijkstra") {
+            r = astar::dijkstra(graph, s, t);
+        }
         else if (algorithm == "bidir_parallel") {
             r = astar::bidirectional_parallel(graph, s, t);
         }

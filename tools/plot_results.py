@@ -64,7 +64,7 @@ def svg_chart(rows, metric, ylabel, title, output):
     out.append('</svg>')
     output.write_text('\n'.join(out),encoding='utf-8')
 
-ALGO_COLORS={'sequential':'#33495c','bidirectional':'#6a7a28','bidir_parallel':'#359268',
+ALGO_COLORS={'dijkstra':'#888888','sequential':'#33495c','bidirectional':'#6a7a28','bidir_parallel':'#359268',
              'shared':'#c46b28','hda':'#1379b5'}
 
 def svg_runtime_bars(rows, title, output):

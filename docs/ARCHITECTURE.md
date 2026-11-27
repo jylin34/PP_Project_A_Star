@@ -33,7 +33,7 @@
 
 ## V0: Sequential A*
 
-`best_g`, `parent`, lazy heap inserts; stale detection. A valid goal pop terminates for consistent heuristics. Dijkstra (`h=0`) is separate correctness oracle.
+`best_g`, `parent`, lazy heap inserts; stale detection. A valid goal pop terminates for consistent heuristics. Dijkstra (`h=0`) is the correctness oracle (verification, untimed) and also a timed benchmark baseline (`--algorithm dijkstra`) showing how much the heuristic saves.
 
 ## V1: Bidirectional A*
 
