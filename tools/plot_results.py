@@ -20,7 +20,9 @@ METRICS=[
 ]
 
 def label(row):
-    a=row['algorithm'];return a+((' / '+row['hash']) if a=='hda' else '')
+    a=row['algorithm']
+    if a=='bidir_parallel':a='bidirectional'  # P=2 point of the bidirectional line
+    return a+((' / '+row['hash']) if a=='hda' else '')
 
 def svg_chart(rows, metric, ylabel, title, output):
     series={}
@@ -62,6 +64,37 @@ def svg_chart(rows, metric, ylabel, title, output):
     out.append('</svg>')
     output.write_text('\n'.join(out),encoding='utf-8')
 
+ALGO_COLORS={'sequential':'#33495c','bidirectional':'#6a7a28','bidir_parallel':'#359268',
+             'shared':'#c46b28','hda':'#1379b5'}
+
+def svg_runtime_bars(rows, title, output):
+    """Horizontal bar chart: actual median search time (ms) of every variant."""
+    bars=[]
+    for row in rows:
+        try:y=float(row['median_ms'])
+        except (ValueError,KeyError,TypeError):continue
+        if not math.isfinite(y):continue
+        a=row['algorithm']
+        name=a+(' / '+row['hash'] if a=='hda' else '')+f"  (P={row['threads']})"
+        bars.append((y,name,a))
+    if not bars:return
+    bars.sort()
+    row_h=24;left,right,top,bottom=230,90,70,50
+    width=900;plot_w=width-left-right;height=top+row_h*len(bars)+bottom
+    ymax=max(y for y,_,_ in bars) or 1
+    out=[f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" role="img">',
+         '<rect width="100%" height="100%" fill="white"/>',
+         f'<text x="{width/2}" y="35" font-size="21" font-family="sans-serif" text-anchor="middle" fill="#222">{html.escape(title)}</text>',
+         f'<text x="{left+plot_w/2}" y="{height-15}" font-size="14" text-anchor="middle" font-family="sans-serif">Median search time (ms), lower is better</text>']
+    for i,(y,name,a) in enumerate(bars):
+        py=top+i*row_h;w=plot_w*y/ymax
+        color=ALGO_COLORS.get(a,'#888')
+        out.append(f'<text x="{left-8}" y="{py+row_h*0.68:.1f}" font-size="13" text-anchor="end" font-family="sans-serif">{html.escape(name)}</text>')
+        out.append(f'<rect x="{left}" y="{py+3}" width="{max(w,1):.1f}" height="{row_h-6}" fill="{color}"/>')
+        out.append(f'<text x="{left+w+6:.1f}" y="{py+row_h*0.68:.1f}" font-size="12" font-family="sans-serif" fill="#222">{y:.3g} ms</text>')
+    out.append('</svg>')
+    output.write_text('\n'.join(out),encoding='utf-8')
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--csv',type=Path,required=True);ap.add_argument('--out',type=Path,required=True)
@@ -75,5 +108,8 @@ def main():
             path=args.out / f'{dataset}_{suffix}.svg'
             svg_chart(data,key,ylabel,dataset+' / '+ylabel,path)
             count+=int(path.is_file())
+        path=args.out / f'{dataset}_runtime_bars.svg'
+        svg_runtime_bars(data,dataset+' / Search time per variant',path)
+        count+=int(path.is_file())
     print(f'Generated {count} dependency-free SVG charts')
 if __name__=='__main__':main()

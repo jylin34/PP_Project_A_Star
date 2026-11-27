@@ -40,11 +40,13 @@ def csv_queries(path, limit):
             if s < 0 or t < 0:
                 raise ValueError('vertex IDs must be >= 0')
             out.append((s, t))
-            if len(out) >= limit:
-                break
         if not out:
             raise ValueError('no queries found in ' + str(path))
-        return out
+        if len(out) <= limit:
+            return out
+        # Query files are usually sorted short -> long, so taking the first N
+        # would only test short trips. Pick N evenly spaced queries instead.
+        return [out[round(i * (len(out) - 1) / max(1, limit - 1))] for i in range(limit)] if limit > 1 else [out[len(out) // 2]]
 
 
 def grid_queries(n, limit):
@@ -83,7 +85,7 @@ def osm_workloads(args):
                          'Copy nodes.csv, edges.csv, queries.csv to data/osm/ first.')
     for qid, (start, goal) in enumerate(csv_queries(args.queries, args.max_queries)):
         yield {
-            'dataset': 'hsinchu_osm', 'family': 'osm', 'query_id': qid,
+            'dataset': args.osm_name, 'family': 'osm', 'query_id': qid,
             'start': start, 'goal': goal, 'grid_size': 0, 'seed': 0,
             'graph_options': ['--nodes', str(args.nodes), '--edges', str(args.edges)],
         }
@@ -91,7 +93,7 @@ def osm_workloads(args):
 
 def variant_modes(args):
     # These modes are repeated on the same graph/query, with equal verification.
-    modes = [('sequential', 1, '-'), ('bidirectional', 1, '-')]
+    modes = [('sequential', 1, '-'), ('bidirectional', 1, '-'), ('bidir_parallel', 2, '-')]
     for p in args.threads:
         modes.append(('shared', p, '-'))
         for h in args.hash_policies:
@@ -135,6 +137,10 @@ def write_csv(path, rows):
         writer.writerows(rows)
 
 
+# Algorithms whose P=1 scaling baseline is a different (single-thread) algorithm.
+SCALING_BASE = {'bidir_parallel': 'bidirectional'}
+
+
 def summarize(rows, out_dir):
     # Establish baseline for EACH query before aggregating across unrelated queries.
     groups = {}
@@ -154,7 +160,7 @@ def summarize(rows, out_dir):
         b_time, b_exp = baseline[(dataset, query)]
         m_time = opt_median(data, 'time_ms')
         m_exp = opt_median(data, 'expanded_nodes')
-        p1 = scaling.get((dataset, query, algorithm, policy))
+        p1 = scaling.get((dataset, query, SCALING_BASE.get(algorithm, algorithm), policy))
         per_query.append({
             'dataset': dataset, 'family': data[0]['dataset_family'], 'query_id': query,
             'algorithm': algorithm, 'threads': p, 'hash': policy,
@@ -216,6 +222,7 @@ def main():
     parser.add_argument('--nodes', type=Path, default=ROOT/'data/osm/nodes.csv')
     parser.add_argument('--edges', type=Path, default=ROOT/'data/osm/edges.csv')
     parser.add_argument('--queries', type=Path, default=ROOT/'data/osm/queries.csv')
+    parser.add_argument('--osm-name', default='hsinchu_osm', help='dataset label for OSM results/plots')
     parser.add_argument('--out', type=Path, default=ROOT/'results'/'latest')
     parser.add_argument('--timeout', type=float, default=180)
     parser.add_argument('--no-plots', action='store_true')

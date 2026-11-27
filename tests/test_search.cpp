@@ -8,7 +8,8 @@ void check(const astar::Graph& graph,astar::Vertex s,astar::Vertex t){
     auto ref=astar::dijkstra(graph,s,t);
     auto baseline=astar::sequential(graph,s,t);
     auto bi=astar::bidirectional(graph,s,t);
-    std::vector<astar::SearchResult> variants={baseline,bi};
+    auto bi2=astar::bidirectional_parallel(graph,s,t);
+    std::vector<astar::SearchResult> variants={baseline,bi,bi2};
     for(int n : {1,2,4}){
         astar::Config config;config.threads=n;variants.push_back(astar::shared_queue(graph,s,t,config));
         for(auto hash : {"mod","mixed","zobrist","abstract","azobrist"}){
@@ -33,7 +34,7 @@ int main(){
                 check(g,pair.first,pair.second);++count;
             }
         }
-        std::cout<<"PASS "<<count<<" grid test configurations x 20 variants = "<<(count*20)<<" validations\n";
+        std::cout<<"PASS "<<count<<" grid test configurations x 21 variants = "<<(count*21)<<" validations\n";
     }catch(const std::exception& ex){std::cerr<<"FAIL "<<ex.what()<<"\n";return 1;}
     return 0;
 }

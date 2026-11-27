@@ -39,6 +39,16 @@
 
 Two own queues / best-g / parent tables, one thread. Backward edge expansion traverses `reverse`. Every intersection of discovered frontiers provides an incumbent. One frontier has a valid A* lower bound (`min_f`); a complete path of cost `U` is optimal when **either** frontier lower bound reaches `U`. If a frontier exhausts with `U=INF`, the route is unreachable. No first-meeting early stop.
 
+## V1-P: Parallel Bidirectional A* (`bidir_parallel`)
+
+Same search and stopping rule as V1, but the forward and backward frontiers run in **two Pthreads**. Each thread exclusively owns its queue and parent table. Shared state is minimal:
+
+- `g` tables are `std::atomic<double>` (seq_cst): the owner stores, the other side loads in `meet()`. Store-then-load on both sides guarantees that when both reach a vertex concurrently, at least one sees the other's `g`, so no meeting is missed.
+- `U` and `meeting` are updated together under one mutex; `bound` is an atomic copy of `U` for lock-free reads.
+- A thread whose own `min_f >= U`, or whose queue is exhausted, sets an atomic `stop` flag and both threads exit. Optimality follows from the V1 argument: either frontier's lower bound reaching `U` proves `U` optimal.
+
+Paths are reconstructed after `pthread_join`, so parent tables need no synchronization.
+
 ## V2: Shared-Queue A*
 
 - Shared global priority queue protected by scheduler mutex and condition variable.

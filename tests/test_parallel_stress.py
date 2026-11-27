@@ -30,7 +30,7 @@ def main():
             write_csv(edges,['from','to','weight'],directed)
             queries=[(0,11),(11,0),(4,15),(0,n-1),(n-1,0),(0,0)]
             for s,t in queries:
-                modes=[('sequential',1,'mixed',4,8),('bidirectional',1,'mixed',4,8)]
+                modes=[('sequential',1,'mixed',4,8),('bidirectional',1,'mixed',4,8),('bidir_parallel',2,'mixed',4,8)]
                 for p in (1,2,4,8):
                     modes.append(('shared',p,'mixed',4,8))
                     for policy in ('mixed','mod','zobrist','abstract','azobrist'):
